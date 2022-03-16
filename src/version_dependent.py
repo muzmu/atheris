@@ -98,6 +98,14 @@ HAVE_ABS_REFERENCE = [
     "JUMP_IF_NOT_EXC_MATCH",
 ]
 
+CALLS_FUNCTION = [
+    "CALL_FUNCTION",
+    "CALL_FUNCTION_KW",
+    "CALL_FUNCTION_EX",
+    "LOAD_METHOD",
+    "CALL_METHOD",
+        ]
+
 ### Compare ops ###
 
 REVERSE_CMP_OP = [4, 5, 2, 3, 0, 1]

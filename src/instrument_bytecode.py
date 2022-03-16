@@ -23,11 +23,13 @@ import sys
 import types
 import importlib
 import dis
+import ast
+import networkx as nx
 from collections import OrderedDict
 from .native import _reserve_counters
 from . import utils
 
-from .version_dependent import get_code_object, get_lnotab, CONDITIONAL_JUMPS, UNCONDITIONAL_JUMPS, ENDS_FUNCTION, HAVE_REL_REFERENCE, HAVE_ABS_REFERENCE, REVERSE_CMP_OP
+from .version_dependent import get_code_object, get_lnotab, CONDITIONAL_JUMPS, UNCONDITIONAL_JUMPS, ENDS_FUNCTION, HAVE_REL_REFERENCE, HAVE_ABS_REFERENCE, REVERSE_CMP_OP, CALLS_FUNCTION
 
 current_index = 0
 current_pc = 0
@@ -37,6 +39,19 @@ REGISTER_FUNCTION = "_reserve_counters"
 COVERAGE_FUNCTION = "_trace_branch"
 COMPARE_FUNCTION = "_trace_cmp"
 
+
+def read_func_calls():
+  with open('/home/ubuntu/atheris/data/data.txt') as f:
+    return ast.literal_eval(f.read())
+
+def read_fltd():
+  with open('/home/ubuntu/atheris/data/fltd.txt') as f:
+    return ast.literal_eval(f.read())
+
+
+
+FLTD = read_fltd()
+FUNC_CALLS = read_func_calls()
 
 class Instruction:
   """
@@ -194,9 +209,17 @@ class BasicBlock:
   def __init__(self, instructions, last_one):
     self.instructions = instructions
     self.id = instructions[0].offset
-
+    self.calls_func= 0
+    self.call_lines=[]
+    self.call_name = []
     last_instr = instructions[-1]
+    for inst in instructions:
+        if inst.mnemonic in CALLS_FUNCTION:
+            self.calls_func=1
+            self.call_lines.append(inst.lineno)
 
+            #print(inst.lineno,inst.mnemonic)
+    #print(CALLS_FUNCTION)
     if last_one or last_instr.mnemonic in ENDS_FUNCTION:
       self.edges = []
     elif last_instr.mnemonic in CONDITIONAL_JUMPS:
@@ -209,11 +232,15 @@ class BasicBlock:
       else:
         self.edges = [last_instr.offset + last_instr.get_size()]
 
+    
   def __iter__(self):
     return iter(self.instructions)
 
   def __repr__(self):
     return f"BasicBlock(id={self.id}, edges={self.edges})"
+
+
+
 
 
 class Instrumentor:
@@ -247,11 +274,99 @@ class Instrumentor:
     self.num_pcs = 0
     self._changes = []
     self._code = code
+    self.path_info = {}
+    self.dist_info = {}
+    self.fun_calling_bb = []
 
     self._build_cfg()
     self._check_state()
 
+  def print_cfg(self):
+    print(f"Disassembly of {self._code.co_filename}:{self._code.co_name}\n")
+    for i, basic_block in enumerate(self._cfg.values()):
+      if i > 5:
+        break;
+      else:
+        print(" -bb- ",basic_block.id)
+        for instr in basic_block:
+          print(f" L.{instr.lineno}  [{instr.offset}]  {instr.mnemonic} ", end="")
+
+          if instr.has_argument():
+            print(f"{instr.arg} ", end="")
+
+            if instr._is_relative:
+              print(f"(to {instr.reference})", end="")
+          print()
+        if basic_block.calls_func:
+            print("This basic block calls a function")
+      print(f"Edges from BB {basic_block.id} -> {basic_block.edges}\n")
+
+
+  def calulate_bb_dist(self):
+    G=nx.DiGraph()
+    fun_calling_bb = []
+    for i, basic_block in enumerate(self._cfg.values()):
+      G.add_node(basic_block.id);
+
+    
+    nx.set_node_attributes(G,0,name="calls_function")
+    nx.set_node_attributes(G,[],name="call_lines")
+    for i, basic_block in enumerate(self._cfg.values()):
+      if basic_block.calls_func:
+        G.nodes[basic_block.id]["calls_function"] = 1
+        G.nodes[basic_block.id]["call_lines"] = basic_block.call_lines
+        #for ele in basic_block.call_lines:
+         # for d in self.func_calls:
+          #  try:
+           #   #print(d)
+            #  print(d[self._code.co_filename][str(ele)],self._code.co_filename)
+            #except:
+             # continue
+
+        fun_calling_bb.append(basic_block.id)
+      if len(basic_block.edges) > 0:
+          for ele in basic_block.edges:
+            G.add_edge(basic_block.id,ele)
+    for bb in self._cfg.values():
+        for ele in fun_calling_bb:
+          self.path_info[(bb,ele)] = []
+          self.dist_info[(bb,ele)] = -1
+          try:
+            self.path_info[(bb,ele)] = nx.shortest_path(G,source=bb.id, target=ele)
+            self.dist_info[(bb,ele)] = nx.shortest_path_length(G,source=bb.id, target=ele)
+            print(path_info[(bb,ele)])
+          except:
+            continue
+    self.fun_calling_bb = fun_calling_bb
+    print(G.nodes(data=True))
+
+  def bbtd(self,CG_fltd,call_info):
+    dic = {}
+    for bb in self._cfg.values():
+        sum =0
+        for ele in self.fun_calling_bb:
+          for func in self._cfg[ele].call_lines:
+            for name in call_info[str(func)]:
+              key = ": "+name+'()'
+              for k in CG_fltd.keys():
+                if key in k:
+                  key = k
+                  break;
+              try:
+                sum = sum + (1 / (self.dist_info[(bb,ele)] + 10 * CG_fltd[key]))
+                if sum < 0:
+                  sum = sum * -1
+
+              except:
+                if sum < 0:
+                  sum = sum * -1
+        dic[bb.id] = sum
+    print("-------------Basic Block level Target Distance---------")
+    print(dic)
+
+  
   def _build_cfg(self):
+
     lineno = self._code.co_firstlineno
     arg = None
     offset = None
@@ -312,6 +427,11 @@ class Instrumentor:
       bb = BasicBlock(instr_list[start_of_bb:end_of_bb],
                       i == len(basic_block_borders) - 2)
       self._cfg[bb.id] = bb
+
+    #print(self._cfg[0])
+    #self.print_cfg()
+    #self.calulate_bb_dist()
+    
 
   def _check_state(self):
     assert (len(self._cfg) > 0)
@@ -689,8 +809,20 @@ def patch_code(code, trace_dataflow, nested=False):
   # If this code object has already been instrumented, skip it
   if "__ATHERIS_INSTRUMENTED__" in inst.consts:
     return code
-
-  inst.trace_control_flow()
+  
+  print("-----------Function level target distance--------")
+  print(FLTD)
+  print("-----------Call lines------------------")
+  print(FUNC_CALLS)
+  inst.calulate_bb_dist()
+  print(inst._code.co_filename.split('/'))
+  
+  inst.bbtd(FLTD,FUNC_CALLS[inst._code.co_filename.split('/')[-1]])
+  #print("Before\n");
+  #inst._dis();
+  inst.trace_control_flow();
+  #print("After\n");
+  #inst._dis();
 
   if trace_dataflow:
     inst.trace_data_flow()
@@ -753,7 +885,6 @@ def _is_instrumentable(obj):
 
   return True
 
-
 def instrument_all():
   """Add Atheris instrementation to all Python code already imported.
 
@@ -767,6 +898,8 @@ def instrument_all():
 
   progress_renderer = None
 
+  function_call_lines = read_func_calls()
+
   funcs = [obj for obj in gc.get_objects() if _is_instrumentable(obj)]
   if sys.stderr.isatty():
     sys.stderr.write(f"INFO: Instrumenting functions: ")
@@ -776,8 +909,11 @@ def instrument_all():
 
   for i in range(len(funcs)):
     func = funcs[i]
+    print(func)
+    exit()
     try:
       instrument_func(func)
+      #print(func)
     except Exception as e:
       if progress_renderer:
         progress_renderer.drop()
