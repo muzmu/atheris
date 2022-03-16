@@ -15,22 +15,17 @@
  * limitations under the License.
  */
 
-#ifndef ATHERIS_TRACER_H_
-#define ATHERIS_TRACER_H_
+#ifndef THIRD_PARTY_PY_ATHERIS_TRACER_H_
+#define THIRD_PARTY_PY_ATHERIS_TRACER_H_
 
 #include <Python.h>
-
-#include "pybind11/pybind11.h"
 
 namespace atheris {
 
 PyObject* TraceCompareOp(void* pc, PyObject* left, PyObject* right, int opid,
                          bool left_is_const);
-
-// Passes `generated_match` (str) to the backend fuzzer in a way that it will be
-// emitted by the fuzzer. `re_obj` is the compiled regex object.
-void TraceRegexMatch(pybind11::handle generated_match, pybind11::handle re_obj);
+void TraceRegexMatch(PyObject* pattern_match, void* pc);
 
 }  // namespace atheris
 
-#endif  // ATHERIS_TRACER_H_
+#endif  // THIRD_PARTY_PY_ATHERIS_TRACER_H_

@@ -1,0 +1,1 @@
+{'example_library.py': {'17': ['func_3'], '24': ['func_2'], '30': ['RuntimeError'], '32': ['func_1'], '34': ['func_2'], '36': ['func_3']}},{'fuzzing_example.py': {'41': ['len'], '44': ['unpack'], '45': ['CodeBeingFuzzed']}},

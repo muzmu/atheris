@@ -1,0 +1,42 @@
+digraph G {
+concentrate=true;
+splines="ortho";
+rankdir="LR";
+subgraph legend{
+    rank = min;
+    label = "legend";
+    Legend [shape=none, margin=0, label = <
+        <table cellspacing="0" cellpadding="0" border="1"><tr><td>Code2flow Legend</td></tr><tr><td>
+        <table cellspacing="0">
+        <tr><td>Regular function</td><td width="50px" bgcolor='#cccccc'></td></tr>
+        <tr><td>Trunk function (nothing calls this)</td><td bgcolor='#966F33'></td></tr>
+        <tr><td>Leaf function (this calls nothing else)</td><td bgcolor='#6db33f'></td></tr>
+        <tr><td>Function call</td><td><font color='black'>&#8594;</font></td></tr>
+        </table></td></tr></table>
+        >];
+}node_83d9ffc1 [label="27: CodeBeingFuzzed()" name="example_library::CodeBeingFuzzed" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_0942363c [label="23: func_1()" name="example_library::func_1" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_edec3da0 [label="16: func_2()" name="example_library::func_2" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_da416a34 [label="20: func_3()" name="example_library::func_3" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_76c00726 [label="30: TestOneInput()" name="fuzzing_example::TestOneInput" shape="rect" style="rounded,filled" fillcolor="#966F33" ];
+node_83d9ffc1 -> node_0942363c [color="#E69F00" penwidth="2"];
+node_83d9ffc1 -> node_edec3da0 [color="#E69F00" penwidth="2"];
+node_83d9ffc1 -> node_da416a34 [color="#E69F00" penwidth="2"];
+node_0942363c -> node_edec3da0 [color="#F0E442" penwidth="2"];
+node_edec3da0 -> node_da416a34 [color="#000000" penwidth="2"];
+node_76c00726 -> node_83d9ffc1 [color="#D55E00" penwidth="2"];
+subgraph cluster_e0883693 {
+    node_edec3da0 node_da416a34 node_0942363c node_83d9ffc1;
+    label="File: example_library";
+    name="example_library";
+    style="filled";
+    graph[style=dotted];
+};
+subgraph cluster_2d54eecb {
+    node_76c00726;
+    label="File: fuzzing_example";
+    name="fuzzing_example";
+    style="filled";
+    graph[style=dotted];
+};
+}

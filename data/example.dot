@@ -1,0 +1,33 @@
+digraph G {
+concentrate=true;
+splines="ortho";
+rankdir="LR";
+subgraph legend{
+    rank = min;
+    label = "legend";
+    Legend [shape=none, margin=0, label = <
+        <table cellspacing="0" cellpadding="0" border="1"><tr><td>Code2flow Legend</td></tr><tr><td>
+        <table cellspacing="0">
+        <tr><td>Regular function</td><td width="50px" bgcolor='#cccccc'></td></tr>
+        <tr><td>Trunk function (nothing calls this)</td><td bgcolor='#966F33'></td></tr>
+        <tr><td>Leaf function (this calls nothing else)</td><td bgcolor='#6db33f'></td></tr>
+        <tr><td>Function call</td><td><font color='black'>&#8594;</font></td></tr>
+        </table></td></tr></table>
+        >];
+}node_daef16c9 [label="27: CodeBeingFuzzed()" name="example_library::CodeBeingFuzzed" shape="rect" style="rounded,filled" fillcolor="#966F33" ];
+node_a09426e0 [label="23: func_1()" name="example_library::func_1" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_39832874 [label="16: func_2()" name="example_library::func_2" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_46a7e8e8 [label="20: func_3()" name="example_library::func_3" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_daef16c9 -> node_a09426e0 [color="#E69F00" penwidth="2"];
+node_daef16c9 -> node_39832874 [color="#E69F00" penwidth="2"];
+node_daef16c9 -> node_46a7e8e8 [color="#E69F00" penwidth="2"];
+node_a09426e0 -> node_39832874 [color="#000000" penwidth="2"];
+node_39832874 -> node_46a7e8e8 [color="#F0E442" penwidth="2"];
+subgraph cluster_4ae95d8d {
+    node_39832874 node_46a7e8e8 node_a09426e0 node_daef16c9;
+    label="File: example_library";
+    name="example_library";
+    style="filled";
+    graph[style=dotted];
+};
+}

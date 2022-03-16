@@ -13,7 +13,25 @@
 # limitations under the License.
 
 
+def func_2():
+  func_3()
+  return 2
+
+def func_3():
+  return 3
+
+def func_1():
+  func_2()
+  return 1
+
 def CodeBeingFuzzed(number):
   """Raises an exception if number is 17."""
   if number == 17:
     raise RuntimeError('Number was seventeen!')
+  elif number == 1:
+    func_1()
+  elif number == 2:
+    func_2()
+  else:
+    func_3()
+

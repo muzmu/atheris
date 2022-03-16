@@ -13,12 +13,11 @@
 # limitations under the License.
 """Tests for coverage instrumentation."""
 
+import atheris
 import dis
 import re
 import unittest
 from unittest import mock
-
-import atheris
 
 with atheris.instrument_imports():
   import coverage_test_helper
@@ -44,13 +43,13 @@ def multi_instrumented(x):
 original_trace_cmp = atheris._trace_cmp
 
 
-@mock.patch.object(atheris, "_trace_regex_match")
+@mock.patch.object(atheris, "_trace_cmp_unicode")
 @mock.patch.object(atheris, "_trace_cmp")
 @mock.patch.object(atheris, "_trace_branch")
 class CoverageTest(unittest.TestCase):
 
   def testBasicBlock(self, trace_branch_mock, trace_cmp_mock,
-                     trace_regex_match_mock):
+                     trace_cmp_unicode_mock):
     trace_branch_mock.assert_not_called()
     coverage_test_helper.simple_func(7)
     trace_branch_mock.assert_called()
@@ -60,7 +59,7 @@ class CoverageTest(unittest.TestCase):
     trace_branch_mock.assert_called()
 
   def testDecoratorBasicBlock(self, trace_branch_mock, trace_cmp_mock,
-                              trace_regex_match_mock):
+                              trace_cmp_unicode_mock):
     trace_branch_mock.assert_not_called()
     decorator_instrumented(7)
     trace_branch_mock.assert_called()
@@ -70,7 +69,7 @@ class CoverageTest(unittest.TestCase):
     trace_branch_mock.assert_called()
 
   def testBranch(self, trace_branch_mock, trace_cmp_mock,
-                 trace_regex_match_mock):
+                 trace_cmp_unicode_mock):
     trace_branch_mock.assert_not_called()
     coverage_test_helper.if_func(True)
     first_call_set = trace_branch_mock.call_args_list
@@ -88,13 +87,13 @@ class CoverageTest(unittest.TestCase):
     self.assertNotEqual(first_call_set, third_call_set)
 
   def testRegex(self, trace_branch_mock, trace_cmp_mock,
-                trace_regex_match_mock):
+                trace_cmp_unicode_mock):
     trace_branch_mock.reset_mock()
     trace_branch_mock.assert_not_called()
-    trace_regex_match_mock.assert_not_called()
+    trace_cmp_unicode_mock.assert_not_called()
     coverage_test_helper.regex_match(re.compile("(Sun|Mon)day"), "Sunday")
     trace_branch_mock.assert_called()
-    trace_regex_match_mock.assert_called()
+    trace_cmp_unicode_mock.assert_called()
 
   def assertTraceCmpWas(self, call_args, left, right, op, left_is_const):
     """Compare a _trace_cmp call to expected values."""
@@ -105,7 +104,7 @@ class CoverageTest(unittest.TestCase):
     self.assertEqual(call_args[4], left_is_const)
 
   def testCompare(self, trace_branch_mock, trace_cmp_mock,
-                  trace_regex_match_mock):
+                  trace_cmp_unicode_mock):
     trace_cmp_mock.side_effect = original_trace_cmp
 
     self.assertTrue(coverage_test_helper.cmp_less(1, 2))
@@ -125,7 +124,7 @@ class CoverageTest(unittest.TestCase):
     self.assertEqual(first_cmp_idx, third_cmp_idx)
 
   def testConstCompare(self, trace_branch_mock, trace_cmp_mock,
-                       trace_regex_match_mock):
+                       trace_cmp_unicode_mock):
     trace_cmp_mock.side_effect = original_trace_cmp
 
     self.assertTrue(coverage_test_helper.cmp_const_less(2))
@@ -139,7 +138,7 @@ class CoverageTest(unittest.TestCase):
     trace_cmp_mock.reset_mock()
 
   def testInstrumentationAppliedOnce(self, trace_branch_mock, trace_cmp_mock,
-                                     trace_regex_match_mock):
+                                     trace_cmp_unicode_mock):
     trace_branch_mock.assert_not_called()
     multi_instrumented(7)
     trace_branch_mock.assert_called_once()

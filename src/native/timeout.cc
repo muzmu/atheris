@@ -33,11 +33,6 @@ sighandler_t python_alarm_signal = nullptr;
 NO_SANITIZE
 void SetTimeout(int timeout_secs) { ::atheris::timeout_secs = timeout_secs; }
 
-NO_SANITIZE
-bool is_null_or_default(sighandler_t h) {
-  return h == nullptr || h == SIG_DFL || h == SIG_IGN;
-}
-
 // A back SIGALRM signal handler, registered inside of HandleAlarm, to call
 // libFuzzer's handler if the Python handler never gets called.
 NO_SANITIZE
@@ -48,7 +43,8 @@ void LibfuzzerAlarmSignalCallback(int signum) {
                "Falling back to native timeout handling."
             << std::endl;
 
-  if (is_null_or_default(libfuzzer_alarm_signal)) {
+  if (libfuzzer_alarm_signal == nullptr || libfuzzer_alarm_signal == SIG_DFL ||
+      libfuzzer_alarm_signal == SIG_IGN) {
     _exit(1);
   }
   libfuzzer_alarm_signal(signum);
@@ -86,25 +82,6 @@ void HandleAlarm(int signum) {
 }
 
 NO_SANITIZE
-void signal_or_exit(sighandler_t handler, int signum) {
-  if (is_null_or_default(handler)) {
-    exit(1);
-  }
-  handler(signum);
-}
-
-// Returns the old handle in the `signum` signal replacing it with `new_handle`.
-NO_SANITIZE
-sighandler_t replace_handle(int signum, sighandler_t new_handle) {
-  struct sigaction action;
-  checked_sigaction(signum, nullptr, &action);
-  auto old_handle = action.sa_handler;
-  action.sa_handler = new_handle;
-  checked_sigaction(signum, &action, nullptr);
-  return old_handle;
-}
-
-NO_SANITIZE
 void SetupTimeoutAlarm() {
   // If python_alarm_signal isn't set, either SetupPythonSigaction wasn't called
   // or it returned false. Timeouts are unsupported.
@@ -127,7 +104,13 @@ void SetupTimeoutAlarm() {
               << std::endl;
   }
 
-  libfuzzer_alarm_signal = replace_handle(SIGALRM, HandleAlarm);
+  struct sigaction action;
+  checked_sigaction(SIGALRM, nullptr, &action);
+
+  libfuzzer_alarm_signal = action.sa_handler;
+
+  action.sa_handler = HandleAlarm;
+  checked_sigaction(SIGALRM, &action, nullptr);
 }
 
 void PrintPythonCallbacks(int signum, py::object frame) {
@@ -137,7 +120,13 @@ void PrintPythonCallbacks(int signum, py::object frame) {
   // Print the Python trace.
   auto faulthandler = py::module::import("faulthandler");
   faulthandler.attr("dump_traceback")();
-  signal_or_exit(libfuzzer_alarm_signal, signum);
+  if (libfuzzer_alarm_signal == nullptr || libfuzzer_alarm_signal == SIG_DFL ||
+      libfuzzer_alarm_signal == SIG_IGN) {
+    exit(1);
+  }
+
+  // exit.
+  libfuzzer_alarm_signal(signum);
 }
 
 bool SetupPythonSigaction() {
@@ -158,7 +147,8 @@ bool SetupPythonSigaction() {
 
   // If someone has provided a SIGALRM handler, we shouldn't override that -
   // print a warning and break.
-  if (!is_null_or_default(orig_action.sa_handler)) {
+  if (orig_action.sa_handler != nullptr && orig_action.sa_handler != SIG_DFL &&
+      orig_action.sa_handler != SIG_IGN) {
     std::cerr << "WARNING: SIGALRM handler already defined at address "
               << reinterpret_cast<void*>(orig_action.sa_handler)
               << ". Fuzzer timeout will not work." << std::endl;
