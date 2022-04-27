@@ -112,9 +112,16 @@ void Init() {
 
 NO_SANITIZE
 void _trace_branch(uint64_t idx) {
+    //std::cout << idx << " ----------- \n";
   if (idx < counters.size()) {
     counters[idx]++;
   }
+}
+
+NO_SANITIZE
+void _trace_cf(int bb_id){
+    std::cout << bb_id << " ----------- \n";
+    
 }
 
 NO_SANITIZE
@@ -201,7 +208,11 @@ NO_SANITIZE
 void start_fuzzing(const std::vector<std::string>& args,
                    const std::function<void(py::bytes data)>& test_one_input,
                    uint64_t num_counters) {
-  test_one_input_global = test_one_input;
+    for(int i=0;i<args.size();i++){
+        std::cerr << args[i] << "args-----------"<< std::endl;
+    }
+
+    test_one_input_global = test_one_input;
 
   bool registered_alarm = SetupPythonSigaction();
 
@@ -266,6 +277,7 @@ void start_fuzzing(const std::vector<std::string>& args,
 PYBIND11_MODULE(ATHERIS_MODULE_NAME, m) {
   Init();
 
+  m.def("_trace_cf",&_trace_cf);
   m.def("start_fuzzing", &start_fuzzing);
   m.def("_trace_branch", &_trace_branch);
   m.def("_reserve_counters", &_reserve_counters);

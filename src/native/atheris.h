@@ -45,6 +45,7 @@ py::handle _trace_cmp(py::handle left, py::handle right, int opid, uint64_t idx,
                       bool left_is_const);
 void _reserve_counters(uint64_t num);
 void _trace_branch(uint64_t idx);
+void _trace_cf(int bb_id);
 
 }  // namespace atheris
 

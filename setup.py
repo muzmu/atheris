@@ -200,6 +200,7 @@ class BuildExt(build_ext):
 
   def build_extensions(self):
     libfuzzer = get_libfuzzer_lib()
+    print(libfuzzer)
     orig_libfuzzer = libfuzzer
     orig_libfuzzer_name = os.path.basename(libfuzzer)
     version = check_libfuzzer_version(libfuzzer)

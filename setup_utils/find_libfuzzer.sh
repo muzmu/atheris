@@ -15,6 +15,7 @@
 
 
 # This script iteratively searches Clang library dirs for the libFuzzer archive.
+
 set -e
 
 uname="$(uname)"

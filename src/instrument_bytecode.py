@@ -38,7 +38,7 @@ TARGET_MODULE = "atheris"
 REGISTER_FUNCTION = "_reserve_counters"
 COVERAGE_FUNCTION = "_trace_branch"
 COMPARE_FUNCTION = "_trace_cmp"
-
+CFG_COVERAGE = "_trace_cf"
 
 def read_func_calls():
   with open('/home/ubuntu/atheris/data/data.txt') as f:
@@ -557,13 +557,15 @@ class Instrumentor:
                            tuple(self.consts + ["__ATHERIS_INSTRUMENTED__"]),
                            tuple(self._names), get_lnotab(self._code, listing))
 
-  def _generate_trace_branch_invocation(self, lineno, offset):
+  def _generate_trace_branch_invocation(self, lineno, offset,bb_id=None):
     """
         Builds the bytecode that calls atheris._trace_branch()
         """
     to_insert = []
     start_offset = offset
     const_atheris = self._get_const(sys.modules[TARGET_MODULE])
+    print(self.consts,self._get_counter());
+
     name_cov = self._get_name(COVERAGE_FUNCTION)
 
     to_insert.append(
@@ -582,6 +584,32 @@ class Instrumentor:
     offset += to_insert[-1].get_size()
 
     return offset - start_offset, to_insert
+  def _generate_bb_tracker(self, lineno, offset,bb_id=None):
+    """
+        Builds the bytecode that calls atheris._trace_branch()
+        """
+    to_insert = []
+    start_offset = offset
+    const_atheris = self._get_const(sys.modules[TARGET_MODULE])
+    name_cov = self._get_name(CFG_COVERAGE)
+
+    to_insert.append(
+        Instruction(lineno, offset, dis.opmap["LOAD_CONST"], const_atheris))
+    offset += to_insert[-1].get_size()
+    to_insert.append(
+        Instruction(lineno, offset, dis.opmap["LOAD_ATTR"], name_cov))
+    offset += to_insert[-1].get_size()
+    to_insert.append(
+        Instruction(lineno, offset, dis.opmap["LOAD_CONST"],
+                bb_id))
+    offset += to_insert[-1].get_size()
+    to_insert.append(Instruction(lineno, offset, dis.opmap["CALL_FUNCTION"], 1))
+    offset += to_insert[-1].get_size()
+    to_insert.append(Instruction(lineno, offset, dis.opmap["POP_TOP"]))
+    offset += to_insert[-1].get_size()
+
+    return offset - start_offset, to_insert
+
 
   def _generate_cmp_invocation(self, op, lineno, offset):
     """
@@ -702,7 +730,7 @@ class Instrumentor:
               if bb.id in source_bb.edges and source_bb.instructions[
                   -1].reference == offset:
                 source_instr.append(source_bb.instructions[-1])
-
+            print("--------------------------------\n",bb.id,"-----------------------------\n")
             total_size, to_insert = self._generate_trace_branch_invocation(
                 bb.instructions[0].lineno, offset)
 
@@ -810,14 +838,14 @@ def patch_code(code, trace_dataflow, nested=False):
   if "__ATHERIS_INSTRUMENTED__" in inst.consts:
     return code
   
-  print("-----------Function level target distance--------")
-  print(FLTD)
-  print("-----------Call lines------------------")
-  print(FUNC_CALLS)
-  inst.calulate_bb_dist()
-  print(inst._code.co_filename.split('/'))
+  #print("-----------Function level target distance--------")
+  #print(FLTD)
+  #print("-----------Call lines------------------")
+  #print(FUNC_CALLS)
+  #inst.calulate_bb_dist()
+  #print(inst._code.co_filename.split('/'))
   
-  inst.bbtd(FLTD,FUNC_CALLS[inst._code.co_filename.split('/')[-1]])
+  #inst.bbtd(FLTD,FUNC_CALLS[inst._code.co_filename.split('/')[-1]])
   #print("Before\n");
   #inst._dis();
   inst.trace_control_flow();

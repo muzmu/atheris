@@ -43,6 +43,7 @@ def multi_instrumented(x):
 original_trace_cmp = atheris._trace_cmp
 
 
+@mock.patch.object(atheris, "_trace_cf")
 @mock.patch.object(atheris, "_trace_cmp_unicode")
 @mock.patch.object(atheris, "_trace_cmp")
 @mock.patch.object(atheris, "_trace_branch")

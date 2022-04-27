@@ -67,6 +67,13 @@ void prefuzz_trace_branch(uint64_t idx) {
 }
 
 NO_SANITIZE
+void prefuzz_trace_cf(int bb_id) {
+  // We don't care about tracing before fuzzing starts, do nothing.
+}
+
+
+
+NO_SANITIZE
 py::handle prefuzz_trace_cmp(py::handle left, py::handle right, int opid,
                              uint64_t idx, bool left_is_const) {
   // We don't care about tracing before fuzzing starts, but _trace_cmp actually
@@ -171,6 +178,7 @@ void Fuzz() {
   atheris.attr("_trace_cmp") = core.attr("_trace_cmp");
   atheris.attr("_trace_regex_match") = core.attr("_trace_regex_match");
   atheris.attr("_trace_branch") = core.attr("_trace_branch");
+  atheris.attr("_trace_cf") = core.attr("_trace_cf");
   atheris.attr("_reserve_counters") = core.attr("_reserve_counters");
 
   core.attr("start_fuzzing")(args_global, test_one_input_global, num_counters);
@@ -179,6 +187,8 @@ void Fuzz() {
 PYBIND11_MODULE(native, m) {
   m.def("Setup", &Setup);
   m.def("Fuzz", &Fuzz);
+
+  m.def("_trace_cf", &prefuzz_trace_cf);
   m.def("_trace_branch", &prefuzz_trace_branch);
   m.def("_trace_cmp", &prefuzz_trace_cmp, py::return_value_policy::move);
   m.def("_reserve_counters", &prefuzz_reserve_counters);
