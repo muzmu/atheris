@@ -102,7 +102,6 @@ CALLS_FUNCTION = [
     "CALL_FUNCTION",
     "CALL_FUNCTION_KW",
     "CALL_FUNCTION_EX",
-    "LOAD_METHOD",
     "CALL_METHOD",
         ]
 

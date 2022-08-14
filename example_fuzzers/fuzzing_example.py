@@ -40,8 +40,10 @@ def TestOneInput(data):
   """
   if len(data) != 4:
     return  # Input must be 4 byte integer.
-
+  #d = int.from_bytes(data, "little",signed=False)
+  #print(d)
   number, = struct.unpack('<I', data)
+  #print(number)
   example_library.CodeBeingFuzzed(number)
 
 atheris.Setup(sys.argv, TestOneInput)

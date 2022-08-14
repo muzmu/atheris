@@ -14,7 +14,7 @@
 # limitations under the License.
 """This module provides the instrumentation functionality for atheris.
 
-Mainly the function patch_code(), which can instrument a code object and the
+Mainly the funprint_cfg()patch_code(), which can instrument a code object and the
 helper class Instrumentor.
 """
 
@@ -52,6 +52,8 @@ def read_fltd():
 
 FLTD = read_fltd()
 FUNC_CALLS = read_func_calls()
+TARGET_FUNC = "24: f3()"
+second_bb_id = 0
 
 class Instruction:
   """
@@ -207,11 +209,14 @@ class Instruction:
 class BasicBlock:
 
   def __init__(self, instructions, last_one):
+    global second_bb_id
+    self.second_id = second_bb_id
+    second_bb_id += 1
     self.instructions = instructions
     self.id = instructions[0].offset
     self.calls_func= 0
     self.call_lines=[]
-    self.call_name = []
+    self.call_names = []
     last_instr = instructions[-1]
     for inst in instructions:
         if inst.mnemonic in CALLS_FUNCTION:
@@ -232,6 +237,7 @@ class BasicBlock:
       else:
         self.edges = [last_instr.offset + last_instr.get_size()]
 
+
     
   def __iter__(self):
     return iter(self.instructions)
@@ -242,7 +248,9 @@ class BasicBlock:
 
 
 
-
+global_ids = {}
+total_counters = 0
+dic = {}
 class Instrumentor:
   """
     This class implements the core instrumentation functionality.
@@ -277,9 +285,9 @@ class Instrumentor:
     self.path_info = {}
     self.dist_info = {}
     self.fun_calling_bb = []
-
     self._build_cfg()
     self._check_state()
+    #self.print_cfg()
 
   def print_cfg(self):
     print(f"Disassembly of {self._code.co_filename}:{self._code.co_name}\n")
@@ -287,7 +295,7 @@ class Instrumentor:
       if i > 5:
         break;
       else:
-        print(" -bb- ",basic_block.id)
+        print(" -bb- ",basic_block.id,basic_block.second_id)
         for instr in basic_block:
           print(f" L.{instr.lineno}  [{instr.offset}]  {instr.mnemonic} ", end="")
 
@@ -302,67 +310,116 @@ class Instrumentor:
       print(f"Edges from BB {basic_block.id} -> {basic_block.edges}\n")
 
 
-  def calulate_bb_dist(self):
+  def calculate_bb_dist(self):
     G=nx.DiGraph()
     fun_calling_bb = []
+    #print(self._code.co_filename.split('/')[-1])
+    #print(func_calls)
     for i, basic_block in enumerate(self._cfg.values()):
       G.add_node(basic_block.id);
 
     
     nx.set_node_attributes(G,0,name="calls_function")
     nx.set_node_attributes(G,[],name="call_lines")
+    nx.set_node_attributes(G,[],name="called_funcs")
+
     for i, basic_block in enumerate(self._cfg.values()):
       if basic_block.calls_func:
         G.nodes[basic_block.id]["calls_function"] = 1
         G.nodes[basic_block.id]["call_lines"] = basic_block.call_lines
-        #for ele in basic_block.call_lines:
-         # for d in self.func_calls:
-          #  try:
-           #   #print(d)
-            #  print(d[self._code.co_filename][str(ele)],self._code.co_filename)
-            #except:
-             # continue
+        for ele in basic_block.call_lines:
+          key = ""
+          #print(func_calls[self._code.co_filename.split('/')[-1]])
+          for each_func in FUNC_CALLS[self._code.co_filename.split('/')[-1]][str(ele)]:
+            fun_key =": " +each_func +"()"
+            for k in FLTD.keys():
+              #print(fun_key,k)
+              if fun_key in k:
+                key = k
+                break
 
+            if key != "" and FLTD[key] > -1 or key == TARGET_FUNC:
+              basic_block.call_names.append(key)
+              #print("Call names",basic_block.id,key)
         fun_calling_bb.append(basic_block.id)
       if len(basic_block.edges) > 0:
           for ele in basic_block.edges:
             G.add_edge(basic_block.id,ele)
     for bb in self._cfg.values():
-        for ele in fun_calling_bb:
-          self.path_info[(bb,ele)] = []
-          self.dist_info[(bb,ele)] = -1
+        #print(bb.id,bb.call_names)
+        for ele in self._cfg.values():
+          self.path_info[(bb.second_id,ele.second_id)] = []
+          self.dist_info[(bb.second_id,ele.second_id)] = -1
           try:
-            self.path_info[(bb,ele)] = nx.shortest_path(G,source=bb.id, target=ele)
-            self.dist_info[(bb,ele)] = nx.shortest_path_length(G,source=bb.id, target=ele)
-            print(path_info[(bb,ele)])
-          except:
+            self.path_info[(bb.second_id,ele.second_id)] = nx.shortest_path(G,source=bb.id, target=ele.id)
+            self.dist_info[(bb.second_id,ele.second_id)] = nx.shortest_path_length(G,source=bb.id, target=ele.id)
+            #print(path_info[(bb,ele)])
+          except Exception as e:
+            #print(e)
             continue
     self.fun_calling_bb = fun_calling_bb
-    print(G.nodes(data=True))
+    #print("BB_DISTance",self.dist_info,fun_calling_bb)
 
   def bbtd(self,CG_fltd,call_info):
-    dic = {}
+    call_chain_fun = []
+    current_blocks = []
+    filename = self._code.co_filename.split('/')[-1]
+    if filename not in dic:
+      dic[filename] = {}
+
     for bb in self._cfg.values():
         sum =0
-        for ele in self.fun_calling_bb:
-          for func in self._cfg[ele].call_lines:
-            for name in call_info[str(func)]:
-              key = ": "+name+'()'
-              for k in CG_fltd.keys():
+        if bb.calls_func and TARGET_FUNC in bb.call_names or self._code.co_name in TARGET_FUNC:
+          print("Target Fun Filename bb.id bb.second_id",filename,bb.id,bb.second_id)
+          dic[filename][bb.second_id] = (0,bb.id)
+          current_blocks.append(bb.id)
+          continue
+        elif bb.calls_func:
+          min =99999999
+          key= ""
+          for ele in bb.call_names:
+            if CG_fltd[ele] < min and CG_fltd[ele] > -1:
+                min = CG_fltd[ele]
+                print("Reachable Fun Filename bb.id bb.second_id",filename,bb.id,bb.second_id,min)
+          sum = min;
+
+          if sum != 99999999:
+            dic[filename][bb.second_id] = (10 * sum,bb.id)
+            current_blocks.append(bb.id)
+    good_vals = dic[filename].keys()
+    #print(current_blocks,good_vals)
+    for bb in self._cfg.values():
+      sum = 0
+      if bb.second_id not in good_vals:
+        for ele in current_blocks:
+          print("Good values",good_vals,bb.second_id)
+          if (bb.second_id,self._cfg[ele].second_id) in self.dist_info and self.dist_info[(bb.second_id,self._cfg[ele].second_id)] > -1:
+            sum += 1 /(self.dist_info[(bb.second_id,self._cfg[ele].second_id)] + dic[filename][self._cfg[ele].second_id][0])
+        if sum > 0:
+          sum = 1/sum
+        else:
+          sum = 99999999
+        dic[filename][bb.second_id] = (sum,bb.id)
+      print("BBTD",dic)
+        
+
+    """
+      if sum == 0 or sum == 99999999:
+          #print(self.fun_calling_bb)
+          for ele in self.fun_calling_bb:
+            for func in self._cfg[ele].call_names:
+              for func in CG_fltd.keys():
                 if key in k:
                   key = k
                   break;
               try:
                 sum = sum + (1 / (self.dist_info[(bb,ele)] + 10 * CG_fltd[key]))
-                if sum < 0:
-                  sum = sum * -1
-
               except:
-                if sum < 0:
-                  sum = sum * -1
+                sum = sum
         dic[bb.id] = sum
-    print("-------------Basic Block level Target Distance---------")
-    print(dic)
+    """
+    #print("-------------Basic Block level Target Distance---------")
+    #print(dic,self.fun_calling_bb,self.dist_info)
 
   
   def _build_cfg(self):
@@ -427,10 +484,11 @@ class Instrumentor:
       bb = BasicBlock(instr_list[start_of_bb:end_of_bb],
                       i == len(basic_block_borders) - 2)
       self._cfg[bb.id] = bb
-
+     # print(bb.id,bb.edges)
+    
     #print(self._cfg[0])
-    #self.print_cfg()
-    #self.calulate_bb_dist()
+    self.print_cfg()
+    #self.calculate_bb_dist()
     
 
   def _check_state(self):
@@ -483,7 +541,12 @@ class Instrumentor:
   def _get_counter(self):
     counter = self._start_idx + self.num_counters
     self.num_counters += 1
-    return self._get_const(counter)
+    global total_counters
+    total_counters = counter
+    to_ret =  self._get_const(counter)
+
+    #print("Assigned ID : ",counter)    
+    return to_ret
 
   def _get_pc(self):
     pc = self._start_pc + self.num_pcs
@@ -564,9 +627,21 @@ class Instrumentor:
     to_insert = []
     start_offset = offset
     const_atheris = self._get_const(sys.modules[TARGET_MODULE])
-    print(self.consts,self._get_counter());
-
+    #print(self.consts,self._get_counter());
+    #print("Instrumenting BB",bb_id)
     name_cov = self._get_name(COVERAGE_FUNCTION)
+    global total_counters
+    counter = self._get_counter()
+   # total_counters.append(bb_id)
+    filename = self._code.co_filename
+    filename = self._code.co_filename.split('/')[-1]
+    #print("Filename",filename)
+    #print("counter vs my counter",counter,total_counters)
+    if filename in global_ids.keys():
+        global_ids[filename][bb_id] = total_counters
+    else:
+        global_ids[filename] = {}
+        global_ids[filename][bb_id] = total_counters
 
     to_insert.append(
         Instruction(lineno, offset, dis.opmap["LOAD_CONST"], const_atheris))
@@ -576,7 +651,7 @@ class Instrumentor:
     offset += to_insert[-1].get_size()
     to_insert.append(
         Instruction(lineno, offset, dis.opmap["LOAD_CONST"],
-                    self._get_counter()))
+                    counter))
     offset += to_insert[-1].get_size()
     to_insert.append(Instruction(lineno, offset, dis.opmap["CALL_FUNCTION"], 1))
     offset += to_insert[-1].get_size()
@@ -712,7 +787,7 @@ class Instrumentor:
 
     offset = self._cfg[0].instructions[0].offset
     total_size, to_insert = self._generate_trace_branch_invocation(
-        self._cfg[0].instructions[0].lineno, offset)
+        self._cfg[0].instructions[0].lineno, offset,self._cfg[0].second_id)
     self._adjust(offset, total_size)
     self._cfg[0].instructions = to_insert + self._cfg[0].instructions
 
@@ -730,9 +805,8 @@ class Instrumentor:
               if bb.id in source_bb.edges and source_bb.instructions[
                   -1].reference == offset:
                 source_instr.append(source_bb.instructions[-1])
-            print("--------------------------------\n",bb.id,"-----------------------------\n")
             total_size, to_insert = self._generate_trace_branch_invocation(
-                bb.instructions[0].lineno, offset)
+                bb.instructions[0].lineno, offset,bb.second_id)
 
             self._adjust(offset, total_size, *source_instr)
 
@@ -842,13 +916,14 @@ def patch_code(code, trace_dataflow, nested=False):
   #print(FLTD)
   #print("-----------Call lines------------------")
   #print(FUNC_CALLS)
-  #inst.calulate_bb_dist()
+  inst.calculate_bb_dist()
   #print(inst._code.co_filename.split('/'))
   
-  #inst.bbtd(FLTD,FUNC_CALLS[inst._code.co_filename.split('/')[-1]])
+  inst.bbtd(FLTD,FUNC_CALLS[inst._code.co_filename.split('/')[-1]])
   #print("Before\n");
   #inst._dis();
   inst.trace_control_flow();
+  print(global_ids)
   #print("After\n");
   #inst._dis();
 
@@ -868,8 +943,10 @@ def patch_code(code, trace_dataflow, nested=False):
         inst.consts[i] = patch_code(inst.consts[i], trace_dataflow, nested=True)
 
   if not nested:
+    #inst.bbtd(FLTD,FUNC_CALLS[inst._code.co_filename.split('/')[-1]])
+    #print(inst.global_ids)
     _reserve_counters(current_index - old_index)
-
+   # print("Reserved :" , current_index - old_index)
   return inst.to_code()
 
 
@@ -879,7 +956,18 @@ def instrument_func(func):
 
   func.__code__ = patch_code(func.__code__, True, True)
   _reserve_counters(current_index - old_index)
-
+  #print("Reserved :" , current_index - old_index)
+  
+  #print("*****Global IDs",global_ids)
+  new_dic = {}
+  for ele in dic.keys():
+    for ele2 in dic[ele].keys():
+      new_dic[global_ids[ele][ele2]] = dic[ele][ele2][0]
+  print("Final dict",new_dic)
+  f=open("dict.txt","w")
+  for ele in new_dic:
+    f.write(str(ele)+":"+str(new_dic[ele])+"\n")
+  f.close()
   return func
 
 
@@ -937,7 +1025,8 @@ def instrument_all():
 
   for i in range(len(funcs)):
     func = funcs[i]
-    print(func)
+    #print(func)
+   # print("*****Global IDs",global_ids)
     exit()
     try:
       instrument_func(func)
@@ -948,8 +1037,8 @@ def instrument_all():
       sys.stderr.write(f"ERROR: Failed to instrument function {func}: {e}\n")
     if progress_renderer:
       progress_renderer.count = i + 1
-
   if progress_renderer:
     progress_renderer.drop()
   else:
+
     print("INFO: Instrumentation complete.")

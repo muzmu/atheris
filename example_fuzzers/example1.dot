@@ -1,0 +1,40 @@
+digraph G {
+concentrate=true;
+splines="ortho";
+rankdir="LR";
+subgraph legend{
+    rank = min;
+    label = "legend";
+    Legend [shape=none, margin=0, label = <
+        <table cellspacing="0" cellpadding="0" border="1"><tr><td>Code2flow Legend</td></tr><tr><td>
+        <table cellspacing="0">
+        <tr><td>Regular function</td><td width="50px" bgcolor='#cccccc'></td></tr>
+        <tr><td>Trunk function (nothing calls this)</td><td bgcolor='#966F33'></td></tr>
+        <tr><td>Leaf function (this calls nothing else)</td><td bgcolor='#6db33f'></td></tr>
+        <tr><td>Function call</td><td><font color='black'>&#8594;</font></td></tr>
+        </table></td></tr></table>
+        >];
+}node_8c826130 [label="29: CodeBeingFuzzed()" name="example_library::CodeBeingFuzzed" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_08f8dfcd [label="15: f1()" name="example_library::f1" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_557679e7 [label="20: f2()" name="example_library::f2" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_80d77a36 [label="24: f3()" name="example_library::f3" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_616452e4 [label="30: TestOneInput()" name="fuzzing_example::TestOneInput" shape="rect" style="rounded,filled" fillcolor="#966F33" ];
+node_8c826130 -> node_08f8dfcd [color="#000000" penwidth="2"];
+node_08f8dfcd -> node_557679e7 [color="#0072B2" penwidth="2"];
+node_557679e7 -> node_80d77a36 [color="#CC79A7" penwidth="2"];
+node_616452e4 -> node_8c826130 [color="#F0E442" penwidth="2"];
+subgraph cluster_ccd9e653 {
+    node_08f8dfcd node_557679e7 node_80d77a36 node_8c826130;
+    label="File: example_library";
+    name="example_library";
+    style="filled";
+    graph[style=dotted];
+};
+subgraph cluster_4ab09d86 {
+    node_616452e4;
+    label="File: fuzzing_example";
+    name="fuzzing_example";
+    style="filled";
+    graph[style=dotted];
+};
+}

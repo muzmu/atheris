@@ -25,9 +25,9 @@ tmp_merged="${tmpdir}/sanitizer.so"
 
 if [ -z "$CXX" ]; then
   if which clang++ > /dev/null 2>&1; then
-    export CXX="clang++"
+    export CXX="/root/llvm-project/build/bin/clang++"
   else
-    export CXX="g++"
+    export CXX="/root/llvm-project/build/bin/clang++"
   fi
 fi
 
@@ -35,7 +35,7 @@ cp "$sanitizer" "$tmp_sanitizer"
 
 ar d "$tmp_sanitizer" $strip_preinit  # Intentionally not quoted
 
-"$CXX" -Wl,--whole-archive "$libfuzzer" "$tmp_sanitizer" -Wl,--no-whole-archive -lpthread -ldl -shared -o "$tmp_merged"
+"$CXX" -Wl,--whole-archive "$libfuzzer" -Wl,--no-whole-archive -lpthread -ldl -shared -o "$tmp_merged"
 
 echo "$tmp_merged"
 exit 0

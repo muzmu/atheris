@@ -112,7 +112,8 @@ void Init() {
 
 NO_SANITIZE
 void _trace_branch(uint64_t idx) {
-    //std::cout << idx << " ----------- \n";
+    
+    //std::cout<<"Triggered bb " << idx << "\n";
   if (idx < counters.size()) {
     counters[idx]++;
   }

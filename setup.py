@@ -99,6 +99,7 @@ def upgrade_libfuzzer(libfuzzer):
 def get_libfuzzer_lib():
   """Returns path to the libFuzzer .a library."""
   libfuzzer_lib = os.getenv("LIBFUZZER_LIB", "")
+  print("why man", libfuzzer_lib)
   if libfuzzer_lib:
     return libfuzzer_lib
   current_path = os.path.dirname(os.path.realpath(__file__))
@@ -200,7 +201,7 @@ class BuildExt(build_ext):
 
   def build_extensions(self):
     libfuzzer = get_libfuzzer_lib()
-    print(libfuzzer)
+    print("----------",libfuzzer)
     orig_libfuzzer = libfuzzer
     orig_libfuzzer_name = os.path.basename(libfuzzer)
     version = check_libfuzzer_version(libfuzzer)
@@ -285,6 +286,7 @@ class BuildExt(build_ext):
     """Generate a .so that contains both libFuzzer and a sanitizer."""
     current_path = os.path.dirname(os.path.realpath(__file__))
 
+    print("------------------Senitizer lib",libfuzzer, sanitizer)
     new_sanitizer = subprocess.check_output([
         os.path.join(current_path, "setup_utils/merge_libfuzzer_sanitizer.sh"),
         libfuzzer, sanitizer, strip_preinit
@@ -295,7 +297,8 @@ class BuildExt(build_ext):
   def merge_deploy_libfuzzer_sanitizer(self, libfuzzer, lib_name,
                                        merged_lib_name, preinit):
     try:
-      merged_lib = self.merge_libfuzzer_sanitizer(libfuzzer, lib_name, preinit)
+      merged_lib = self.merge_libfuzzer_sanitizer(libfuzzer, lib_name, preinit)     
+      print("------------------Mrged lib",libfuzzer, merged_lib_name)
       self.deploy_file(merged_lib, merged_lib_name)
     except Exception as e:
       sys.stderr.write(str(e))
