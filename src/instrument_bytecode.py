@@ -42,8 +42,12 @@ CFG_COVERAGE = "_trace_cf"
 
 def read_func_calls():
   with open('/home/ubuntu/atheris/data/data.txt') as f:
-    return ast.literal_eval(f.read())
-
+    data = ast.literal_eval(f.read())
+    final_dict = {}
+    for ele in data:
+      for key in ele:
+        final_dict[key] = ele[key]
+    return final_dict
 def read_fltd():
   with open('/home/ubuntu/atheris/data/fltd.txt') as f:
     return ast.literal_eval(f.read())
