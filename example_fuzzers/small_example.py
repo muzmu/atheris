@@ -13,65 +13,23 @@
 # limitations under the License.
 
 def f1(number):
-  if number % 17 > 9:
+  if number == 12:
     i = 2
-    if i == 2:
-      i=12
-      f2(number)
-    if i == 12:
-      i=14
+  f2(11)
 
 def f2(number):
-  if number % 17 > 11:
-    i = 4
-    if i == 4:
-      i=13
-      f3(number)
-    if i == 13:
-      i=12
+  i=12
+  f3(i)
 
 def f3(number):
-  if number % 17 == 16:
-    i = 1
-    if i == 1:
-      i=2
-    if i == 2:
-      i=3
-    raise RuntimeError('Number was found')
-
-
+  i=13
+  return 1
  
 
 def CodeBeingFuzzed(number):
   """Raises an exception if number is 17."""
-  if number % 17 > 5:
+  if number == 17:
     #print("Number was 17")
-    #raise RuntimeError('Number was seventeen!')
-    i = 1
-    f1(number)
-    if i == 1:
-      i=2
-    if i == 2:
-      i=3
-
-  elif number == 12:
-    i = 2
-    f2(5)
-    if i == 2:
-      i=12
-    if i == 12:
-      i=14
-
-    #print("Number was 12")
-  elif number == 14:
-    i = 4
-    f3(17)
-    if i == 4:
-      i=13
-    if i == 13:
-      i=12
-
-    #print("Number was 14")
-  else:
-    i=12
+    f1(12)
+    raise RuntimeError('Number was seventeen!')
     #print("Number was somthing else")

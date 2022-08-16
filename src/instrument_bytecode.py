@@ -56,7 +56,7 @@ def read_fltd():
 
 FLTD = read_fltd()
 FUNC_CALLS = read_func_calls()
-TARGET_FUNC = "24: f3()"
+TARGET_FUNC = "33: f3()"
 second_bb_id = 0
 
 class Instruction:
@@ -333,17 +333,32 @@ class Instrumentor:
         G.nodes[basic_block.id]["call_lines"] = basic_block.call_lines
         for ele in basic_block.call_lines:
           key = ""
-          #print(func_calls[self._code.co_filename.split('/')[-1]])
-          for each_func in FUNC_CALLS[self._code.co_filename.split('/')[-1]][str(ele)]:
-            fun_key =": " +each_func +"()"
-            for k in FLTD.keys():
+          print(self._code.co_filename,ele)
+          try:
+            for each_func in FUNC_CALLS[self._code.co_filename][str(ele)]:
+              fun_key =": " +each_func +"()"
+              for k in FLTD.keys():
               #print(fun_key,k)
-              if fun_key in k:
-                key = k
-                break
+                if fun_key in k:
+                  key = k
+                  break
 
-            if key != "" and FLTD[key] > -1 or key == TARGET_FUNC:
-              basic_block.call_names.append(key)
+              if key != "" and FLTD[key] > -1 or key == TARGET_FUNC:
+                basic_block.call_names.append(key)
+          except:
+            try:
+              for each_func in FUNC_CALLS[self._code.co_filename.split('/')[-1]][str(ele)]:
+                fun_key =": " +each_func +"()"
+                for k in FLTD.keys():
+              #print(fun_key,k)
+                  if fun_key in k:
+                    key = k
+                    break
+
+                if key != "" and FLTD[key] > -1 or key == TARGET_FUNC:
+                  basic_block.call_names.append(key)
+            except:
+              None
               #print("Call names",basic_block.id,key)
         fun_calling_bb.append(basic_block.id)
       if len(basic_block.edges) > 0:
@@ -922,8 +937,11 @@ def patch_code(code, trace_dataflow, nested=False):
   #print(FUNC_CALLS)
   inst.calculate_bb_dist()
   #print(inst._code.co_filename.split('/'))
-  
-  inst.bbtd(FLTD,FUNC_CALLS[inst._code.co_filename.split('/')[-1]])
+  try:
+    inst.bbtd(FLTD,FUNC_CALLS[inst._code.co_filename])
+  except:
+    inst.bbtd(FLTD,FUNC_CALLS[inst._code.co_filename.split('/')[-1]])
+
   #print("Before\n");
   #inst._dis();
   inst.trace_control_flow();

@@ -1,1 +1,1 @@
-{'example_library.py': {'18': ['f2'], '22': ['f3'], '33': ['f1'], '34': ['RuntimeError']}},{'fuzzing_example.py': {'41': ['len'], '45': ['unpack'], '47': ['CodeBeingFuzzed']}},
+{'example_library.py': {'20': ['f2'], '29': ['f3'], '40': ['RuntimeError'], '51': ['f1'], '59': ['f2'], '68': ['f3']}},{'fuzzing_example.py': {'41': ['len'], '45': ['unpack'], '47': ['CodeBeingFuzzed']}},

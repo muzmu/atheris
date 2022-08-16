@@ -14,24 +14,24 @@ subgraph legend{
         <tr><td>Function call</td><td><font color='black'>&#8594;</font></td></tr>
         </table></td></tr></table>
         >];
-}node_2fc10981 [label="29: CodeBeingFuzzed()" name="example_library::CodeBeingFuzzed" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
-node_31e8bdac [label="15: f1()" name="example_library::f1" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
-node_b52d74fb [label="20: f2()" name="example_library::f2" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
-node_8f27ede1 [label="24: f3()" name="example_library::f3" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
-node_3179d4b0 [label="30: TestOneInput()" name="fuzzing_example::TestOneInput" shape="rect" style="rounded,filled" fillcolor="#966F33" ];
-node_2fc10981 -> node_31e8bdac [color="#E69F00" penwidth="2"];
-node_31e8bdac -> node_b52d74fb [color="#F0E442" penwidth="2"];
-node_b52d74fb -> node_8f27ede1 [color="#009E73" penwidth="2"];
-node_3179d4b0 -> node_2fc10981 [color="#000000" penwidth="2"];
-subgraph cluster_be7e6c1b {
-    node_31e8bdac node_b52d74fb node_8f27ede1 node_2fc10981;
+}node_e3bc3bc3 [label="29: CodeBeingFuzzed()" name="example_library::CodeBeingFuzzed" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_2005a19d [label="15: f1()" name="example_library::f1" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_cc0be6c6 [label="20: f2()" name="example_library::f2" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_077886f6 [label="24: f3()" name="example_library::f3" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_e7cc1bf3 [label="30: TestOneInput()" name="fuzzing_example::TestOneInput" shape="rect" style="rounded,filled" fillcolor="#966F33" ];
+node_e3bc3bc3 -> node_2005a19d [color="#009E73" penwidth="2"];
+node_2005a19d -> node_cc0be6c6 [color="#0072B2" penwidth="2"];
+node_cc0be6c6 -> node_077886f6 [color="#D55E00" penwidth="2"];
+node_e7cc1bf3 -> node_e3bc3bc3 [color="#009E73" penwidth="2"];
+subgraph cluster_3a2cdea5 {
+    node_2005a19d node_cc0be6c6 node_077886f6 node_e3bc3bc3;
     label="File: example_library";
     name="example_library";
     style="filled";
     graph[style=dotted];
 };
-subgraph cluster_bac98515 {
-    node_3179d4b0;
+subgraph cluster_7a726d79 {
+    node_e7cc1bf3;
     label="File: fuzzing_example";
     name="fuzzing_example";
     style="filled";
